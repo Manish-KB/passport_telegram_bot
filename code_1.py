@@ -1,3 +1,4 @@
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -5,15 +6,24 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from PIL import Image
 import io
+from telegram import ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from datetime import datetime
 
 user_input = None
 driver = None
 
+def stop(update, context):
+    context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Bot Stopped")
+    sys.exit()
+
+
 def start(update, context):
     global driver
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! \nLoading the captcha for you")
+    buttons = [['/start','/stop']]
+    # Create the keyboard markup
+    keyboard = ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! \nLoading the captcha for you ⏳", reply_markup=keyboard)
 
     chrome_options = Options()
     chrome_options.add_argument('--headless')
@@ -51,6 +61,9 @@ def submit_captcha_and_process(context: CallbackContext):
     global user_input, driver
 
     if user_input is not None:
+        if user_input.lower()=="stop":
+            context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Bot Stopped")
+            sys.exit()
         captcha_input = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'test123')))
         captcha_input.send_keys(user_input)
 
@@ -67,7 +80,8 @@ def submit_captcha_and_process(context: CallbackContext):
                 input_date_str = appointments_released.replace("Available for ", "")
                 input_date = datetime.strptime(input_date_str, "%d/%m/%Y")
                 day_of_week = input_date.strftime("%A")
-                message = "\n" + appointments_released + " " + day_of_week
+                appointments_released=appointments_released.replace("Available for ", "Available for\n")
+                message = appointments_released + " " + day_of_week
                 context.bot.send_message(chat_id=context.user_data['current_chat_id'], text=message)
                 
             else:
@@ -78,5 +92,6 @@ def submit_captcha_and_process(context: CallbackContext):
 updater = Updater(token='6961596587:AAHvJX5O3MI1tr-FlDVHncfLlpNew83smvI', use_context=True)
 dispatcher = updater.dispatcher
 dispatcher.add_handler(CommandHandler('start', start))
+dispatcher.add_handler(CommandHandler('stop', stop))
 updater.start_polling()
 updater.idle()
