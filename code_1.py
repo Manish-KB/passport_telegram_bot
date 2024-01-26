@@ -20,7 +20,7 @@ def stop(update, context):
 
 def start(update, context):
     global driver
-    buttons = [['/start','/stop']]
+    buttons = [['/start','/stop','/book_now']]
     # Create the keyboard markup
     keyboard = ReplyKeyboardMarkup(buttons, resize_keyboard=True)
     context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! \nLoading the captcha for you ⏳", reply_markup=keyboard)
@@ -69,29 +69,38 @@ def submit_captcha_and_process(context: CallbackContext):
 
         button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, "bt")))
         button.click()
+        try:
+            table_element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td/table/tbody/tr[1]/td/div/table/tbody/tr[6]/td/table/tbody/tr/td[2]/form/div[2]/table/tbody/tr/td/table/tbody/tr[2]/td/table/tbody/tr[10]/td/table/tbody/tr[3]/td/table')))
+            first_row = table_element.find_element(By.XPATH, ".//tr[2]")
 
-        table_element = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td/table/tbody/tr[1]/td/div/table/tbody/tr[6]/td/table/tbody/tr/td[2]/form/div[2]/table/tbody/tr/td/table/tbody/tr[2]/td/table/tbody/tr[10]/td/table/tbody/tr[3]/td/table')))
-        first_row = table_element.find_element(By.XPATH, ".//tr[2]")
-
-        if 'Lalbagh' in first_row.text:
-            if 'Normal' in first_row.text:
-                appointments_released = first_row.find_element(By.XPATH, ".//td[5]").text
-                
-                input_date_str = appointments_released.replace("Available for ", "")
-                input_date = datetime.strptime(input_date_str, "%d/%m/%Y")
-                day_of_week = input_date.strftime("%A")
-                appointments_released=appointments_released.replace("Available for ", "Available for\n")
-                message = appointments_released + " " + day_of_week
-                context.bot.send_message(chat_id=context.user_data['current_chat_id'], text=message)
-                
+            if 'Lalbagh' in first_row.text:
+                if 'Normal' in first_row.text:
+                    appointments_released = first_row.find_element(By.XPATH, ".//td[5]").text
+                    
+                    input_date_str = appointments_released.replace("Available for ", "")
+                    input_date = datetime.strptime(input_date_str, "%d/%m/%Y")
+                    day_of_week = input_date.strftime("%A")
+                    appointments_released=appointments_released.replace("Available for ", "Available for 🗓\n")
+                    message = appointments_released + " " + day_of_week
+                    context.bot.send_message(chat_id=context.user_data['current_chat_id'], text=message)
+                    
+                else:
+                    context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Error")
             else:
                 context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Error")
-        else:
-            context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Error")
+        except:
+            context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Invalid Captcha...Please start again")
 
+def book(update, context):
+     context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Great! ✨")
+     context.bot.send_message(chat_id=context.user_data['current_chat_id'], text="Visit ✅:\n https://passportindia.gov.in/AppOnlineProject/user/userLogin ")
+     
+     
 updater = Updater(token='6961596587:AAHvJX5O3MI1tr-FlDVHncfLlpNew83smvI', use_context=True)
 dispatcher = updater.dispatcher
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('stop', stop))
+dispatcher.add_handler(CommandHandler('book_now', book))
 updater.start_polling()
 updater.idle()
+
