@@ -1,0 +1,3 @@
+Pillow==10.2.0
+selenium==4.17.2
+telegram==0.0.1
